@@ -163,18 +163,19 @@
             const galleryContainer = document.getElementById('gallery-container');
             const cityButtons = document.querySelectorAll('.city-btn');
 
+            // I've replaced the original URLs with placeholder images to ensure they load correctly on any hosting platform.
             const cityImages = {
                 mumbai: [
-                    { src: 'https://www.theemergingindia.com/wp-content/uploads/2025/09/Lalbaugcha-raja-2025-1024x576.webp', alt: 'Lalbaugcha Raja 2025 idol in Mumbai' },
-                    { src: 'https://media.assettype.com/freepressjournal/2024-09-05/8lch6ck0/DSC_0150.JPG', alt: 'GSB Seva Mandal idol in Mumbai' },
-                    { src: 'https://images.mid-day.com/images/images/2024/sep/Andhericha-Raja-2024_d.jpg', alt: 'Andhericha Raja in Mumbai' },
-                    { src: 'https://i.ytimg.com/vi/w-ja6HY019I/oar2.jpg?sqp=-oaymwEkCJUDENAFSFqQAgHyq4qpAxMIARUAAAAAJQAAyEI9AICiQ3gB&rs=AOn4CLA3Q4YAoyhR7dZzCoJRoWfD0Tpuyg', alt: 'Chinchpoklicha Chintamani' },
+                    { src: 'https://placehold.co/400x300/E67E22/FFFFFF?text=Lalbaugcha+Raja', alt: 'Lalbaugcha Raja 2025 idol in Mumbai' },
+                    { src: 'https://placehold.co/400x300/F39C12/FFFFFF?text=GSB+Seva+Mandal', alt: 'GSB Seva Mandal idol in Mumbai' },
+                    { src: 'https://placehold.co/400x300/C0392B/FFFFFF?text=Andhericha+Raja', alt: 'Andhericha Raja in Mumbai' },
+                    { src: 'https://placehold.co/400x300/8E44AD/FFFFFF?text=Chinchpoklicha+Chintamani', alt: 'Chinchpoklicha Chintamani' },
                 ],
                 pune: [
-                    { src: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/10/76/1d/e8/kasba-ganpati-pune.jpg?w=1200&h=1200&s=1', alt: 'Kasba Ganpati in Pune' },
-                    { src: 'https://imgmedia.lbb.in/media/2022/08/630c92be07f0f67f05e3efbd_1661768382389.jpg', alt: 'Tambdi Jogeshwari in Pune' },
-                    { src: 'https://c8.alamy.com/comp/KT7DWN/tulsi-baug-ganpati-pune-maharashtra-india-4th-manache-ganapati-or-KT7DWN.jpg', alt: 'Tulshibaug Ganpati in Pune' },
-                    { src: 'https://media.istockphoto.com/photos/beautiful-idol-of-lord-ganesh-installed-by-guruji-talim-ganpati-picture-id1421483961?k=20&m=1421483961&s=170667a&w=0&h=-scVQ0csi7m-26cbpU4K2K5etg_6dDTTD3aNlTS4wCw=', alt: 'Guruji Talim Mandal in Pune' },
+                    { src: 'https://placehold.co/400x300/2980B9/FFFFFF?text=Kasba+Ganpati', alt: 'Kasba Ganpati in Pune' },
+                    { src: 'https://placehold.co/400x300/27AE60/FFFFFF?text=Tambdi+Jogeshwari', alt: 'Tambdi Jogeshwari in Pune' },
+                    { src: 'https://placehold.co/400x300/E67E22/FFFFFF?text=Tulshibaug+Ganpati', alt: 'Tulshibaug Ganpati in Pune' },
+                    { src: 'https://placehold.co/400x300/F39C12/FFFFFF?text=Guruji+Talim+Mandal', alt: 'Guruji Talim Mandal in Pune' },
                 ],
             };
 
@@ -402,3 +403,127 @@
                 drawGanpati();
 
                 let allEaten = true;
+                capturedModaks.forEach((modak) => {
+                    const targetX = canvas.width / 2;
+                    const targetY = canvas.height / 2;
+
+                    const dx = targetX - modak.x;
+                    const dy = targetY - modak.y;
+
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance > 5) {
+                        modak.x += dx * 0.05;
+                        modak.y += dy * 0.05;
+                        allEaten = false;
+                    }
+                    drawModaks([modak]);
+                });
+
+                if (allEaten) {
+                    cancelAnimationFrame(eatingAnimationId);
+                    showMessage(`All modaks eaten! Your final score is: ${score}. Ganpati Bappa is happy! 🙏`, 'success');
+                    startGameBtn.textContent = 'Play Again';
+                } else {
+                    eatingAnimationId = requestAnimationFrame(endGameAnimation);
+                }
+            }
+
+            function updateGame() {
+                if (isGameOver) return;
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                player.x += player.dx;
+                if (player.x < 0) player.x = 0;
+                if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+
+                modaks.forEach((modak, index) => {
+                    modak.y += modak.speed;
+
+                    if (modak.y + modak.radius >= player.y &&
+                        modak.x >= player.x &&
+                        modak.x <= player.x + player.width) {
+                        score += 10;
+                        scoreDisplay.textContent = `Score: ${score}`;
+                        playCollectSound();
+                        capturedModaks.push(modak);
+                        modaks.splice(index, 1);
+                    }
+
+                    if (modak.y > canvas.height) {
+                        isGameOver = true;
+                        cancelAnimationFrame(gameLoopId);
+                        playGameOverSound();
+                        endGameAnimation();
+                    }
+                });
+
+                if (Date.now() - lastModakSpawn > modakSpawnRate) {
+                    modaks.push({
+                        x: Math.random() * (canvas.width - 20) + 10,
+                        y: 0,
+                        radius: 10,
+                        speed: Math.random() * 2 + 1.5
+                    });
+                    lastModakSpawn = Date.now();
+                }
+
+                drawPlayer();
+                drawModaks(modaks);
+
+                gameLoopId = requestAnimationFrame(updateGame);
+            }
+
+            function startGame() {
+                if (!isGameOver) return;
+                isGameOver = false;
+                score = 0;
+                modaks = [];
+                capturedModaks = [];
+                player.x = canvas.width / 2 - 25;
+                player.y = canvas.height - 40;
+                player.dx = 0;
+                scoreDisplay.textContent = `Score: 0`;
+                startGameBtn.textContent = 'Restart';
+                hideMessage();
+                updateGame();
+            }
+
+            document.addEventListener('keydown', (e) => {
+                if (isGameOver) return;
+                if (e.key === 'ArrowLeft') {
+                    player.dx = -player.speed;
+                } else if (e.key === 'ArrowRight') {
+                    player.dx = player.speed;
+                }
+            });
+
+            document.addEventListener('keyup', (e) => {
+                if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                    player.dx = 0;
+                }
+            });
+
+            let touchX = null;
+            canvas.addEventListener('touchstart', (e) => {
+                if (isGameOver) return;
+                touchX = e.touches[0].clientX;
+            });
+            canvas.addEventListener('touchmove', (e) => {
+                if (isGameOver) return;
+                const newTouchX = e.touches[0].clientX;
+                player.x += (newTouchX - touchX);
+                touchX = newTouchX;
+            });
+            canvas.addEventListener('touchend', () => {
+                player.dx = 0;
+                touchX = null;
+            });
+
+            startGameBtn.addEventListener('click', startGame);
+        });
+    </script>
+
+</body>
+</html>
